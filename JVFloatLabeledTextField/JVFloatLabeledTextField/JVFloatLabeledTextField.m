@@ -31,6 +31,12 @@
 static CGFloat const kFloatingLabelShowAnimationDuration = 0.3f;
 static CGFloat const kFloatingLabelHideAnimationDuration = 0.3f;
 
+@interface JVFloatLabeledTextField ()
+
+@property (strong, nonatomic) CALayer *bottomLayer;
+
+@end
+
 @implementation JVFloatLabeledTextField
 {
     BOOL _isFloatingLabelFontDefault;
@@ -313,6 +319,32 @@ static CGFloat const kFloatingLabelHideAnimationDuration = 0.3f;
     else {
         [self showFloatingLabel:firstResponder];
     }
+    [self setEditingModeTo:self.editing];
 }
+
+- (void)setEditingModeTo:(BOOL)editing {
+    if (!_bottomLayer) {
+        _bottomLayer = [CALayer layer];
+    }
+    CGFloat borderWidth = editing ? 2 : 1;
+    _bottomLayer.borderColor = editing ? self.tintColor.CGColor : (self.bottomLineColor ? self.bottomLineColor.CGColor : [UIColor colorWithWhite:0.898 alpha:1.000].CGColor);
+    _bottomLayer.frame = CGRectMake(0, self.frame.size.height - borderWidth, self.frame.size.width, self.frame.size.height);
+    _bottomLayer.borderWidth = borderWidth;
+    [self.layer addSublayer:_bottomLayer];
+    self.layer.masksToBounds = YES;
+}
+
+- (BOOL)becomeFirstResponder {
+    BOOL ret = [super becomeFirstResponder];
+    [self setEditingModeTo:ret];
+    return ret;
+}
+
+- (BOOL)resignFirstResponder {
+    BOOL ret = [super resignFirstResponder];
+    [self setEditingModeTo:!ret];
+    return ret;
+}
+
 
 @end
