@@ -322,6 +322,10 @@ static CGFloat const kFloatingLabelHideAnimationDuration = 0.3f;
     [self setEditingModeTo:self.editing];
 }
 
+- (void)setBottomLineColor:(UIColor *)bottomLineColor {
+    [self setEditingModeTo:self.editing];
+}
+
 - (void)setEditingModeTo:(BOOL)editing {
     if (!_bottomLayer) {
         _bottomLayer = [CALayer layer];
