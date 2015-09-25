@@ -27,6 +27,16 @@
 
 #import <UIKit/UIKit.h>
 
+typedef NS_OPTIONS(NSUInteger, BorderDirection) {
+    BorderDirectionTop = (1 << 0), // => 00000001
+    BorderDirectionBottom   = (1 << 1), // => 00000010
+    BorderDirectionTopBottom = (BorderDirectionBottom | BorderDirectionTop),
+    BorderDirectionLeft    = (1 << 2),  // => 00000100
+    BorderDirectionRight = (1 << 3), // => 00001000
+    BorderDirectionLeftRight = BorderDirectionLeft | BorderDirectionRight,
+    BorderDirectionAll = BorderDirectionLeftRight | BorderDirectionTopBottom
+};
+
 /**
  * `JVFloatLabeledTextField` is a `UITextField` subclass that implements the "Float Label Pattern".
  *
@@ -75,6 +85,11 @@ IB_DESIGNABLE
 @property (nonatomic, strong) UIFont * floatingLabelFont;
 
 /**
+ *  Floating label text, default if placeholder text
+ */
+@property (strong, nonatomic) NSString *floatingText;
+
+/**
  * Text color to be applied to the floating label. 
  * Defaults to `[UIColor grayColor]`.
  */
@@ -117,9 +132,14 @@ IB_DESIGNABLE
 @property (nonatomic, assign) IBInspectable BOOL keepBaseline;
 
 /**
- *  Set's ths textfield bottom line color
+ *  Set's the textfield borders
  */
-@property (nonatomic, strong) UIColor *bottomLineColor;
+@property (nonatomic, assign) BorderDirection borderDirection;
+
+/**
+ *  Borders color
+ */
+@property (nonatomic, strong) UIColor *borderColor;
 
 /**
  *  Sets the placeholder and the floating title
