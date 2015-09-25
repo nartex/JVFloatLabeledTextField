@@ -34,6 +34,9 @@ static CGFloat const kFloatingLabelHideAnimationDuration = 0.3f;
 @interface JVFloatLabeledTextField ()
 
 @property (strong, nonatomic) CALayer *bottomLayer;
+@property (strong, nonatomic) CALayer *topLayer;
+@property (strong, nonatomic) CALayer *leftLayer;
+@property (strong, nonatomic) CALayer *rightLayer;
 
 @end
 
@@ -65,7 +68,7 @@ static CGFloat const kFloatingLabelHideAnimationDuration = 0.3f;
     _floatingLabel = [UILabel new];
     _floatingLabel.alpha = 0.0f;
     [self addSubview:_floatingLabel];
-	
+    
     // some basic default fonts/colors
     _floatingLabelFont = [self defaultFloatingLabelFont];
     _floatingLabel.font = _floatingLabelFont;
@@ -75,9 +78,15 @@ static CGFloat const kFloatingLabelHideAnimationDuration = 0.3f;
     _floatingLabelShowAnimationDuration = kFloatingLabelShowAnimationDuration;
     _floatingLabelHideAnimationDuration = kFloatingLabelHideAnimationDuration;
     [self setFloatingLabelText:self.placeholder];
-
+    
     _adjustsClearButtonRect = YES;
     _isFloatingLabelFontDefault = YES;
+    
+    self.borderColor = [UIColor colorWithWhite:0.898 alpha:1.000];
+    self.borderDirection = BorderDirectionBottom;
+    
+    
+    self.layer.masksToBounds = YES;
 }
 
 #pragma mark -
@@ -164,7 +173,7 @@ static CGFloat const kFloatingLabelHideAnimationDuration = 0.3f;
                                           _floatingLabel.font.lineHeight + _placeholderYPadding,
                                           _floatingLabel.frame.size.width,
                                           _floatingLabel.frame.size.height);
-
+        
     };
     
     if (animated || 0 != _animateEvenIfNotFirstResponder) {
@@ -202,9 +211,13 @@ static CGFloat const kFloatingLabelHideAnimationDuration = 0.3f;
                                       _floatingLabel.frame.size.width, _floatingLabel.frame.size.height);
 }
 
-- (void)setFloatingLabelText:(NSString *)text
-{
-    _floatingLabel.text = text;
+- (void)setFloatingLabelText:(NSString *)text {
+    if (_floatingText) {
+        _floatingLabel.text = _floatingText;
+    } else {
+        _floatingLabel.text = text;
+    }
+    
     [self setNeedsLayout];
 }
 
@@ -233,13 +246,16 @@ static CGFloat const kFloatingLabelHideAnimationDuration = 0.3f;
 - (void)setPlaceholder:(NSString *)placeholder
 {
     [super setPlaceholder:placeholder];
-    [self setFloatingLabelText:placeholder];
+    if (!_floatingText) {
+        [self setFloatingLabelText:placeholder];
+    }
 }
 
-- (void)setAttributedPlaceholder:(NSAttributedString *)attributedPlaceholder
-{
+- (void)setAttributedPlaceholder:(NSAttributedString *)attributedPlaceholder {
     [super setAttributedPlaceholder:attributedPlaceholder];
-    [self setFloatingLabelText:attributedPlaceholder.string];
+    if (!_floatingText) {
+        [self setFloatingLabelText:attributedPlaceholder.string];
+    }
     [self updateDefaultFloatingLabelFont];
 }
 
@@ -255,7 +271,8 @@ static CGFloat const kFloatingLabelHideAnimationDuration = 0.3f;
     if ([self.text length] || self.keepBaseline) {
         rect = [self insetRectForBounds:rect];
     }
-    return CGRectIntegral(rect);
+    CGRect integral = CGRectIntegral(rect);
+    return CGRectMake(integral.origin.x + 8, integral.origin.y + 4, integral.size.width - 16, integral.size.height - 8);
 }
 
 - (CGRect)editingRectForBounds:(CGRect)bounds
@@ -264,7 +281,8 @@ static CGFloat const kFloatingLabelHideAnimationDuration = 0.3f;
     if ([self.text length] || self.keepBaseline) {
         rect = [self insetRectForBounds:rect];
     }
-    return CGRectIntegral(rect);
+    CGRect integral = CGRectIntegral(rect);
+    return CGRectMake(integral.origin.x + 8, integral.origin.y + 4, integral.size.width - 16, integral.size.height - 8);
 }
 
 - (CGRect)insetRectForBounds:(CGRect)rect {
@@ -327,15 +345,59 @@ static CGFloat const kFloatingLabelHideAnimationDuration = 0.3f;
 }
 
 - (void)setEditingModeTo:(BOOL)editing {
-    if (!_bottomLayer) {
-        _bottomLayer = [CALayer layer];
+    if (self.borderDirection & BorderDirectionBottom) {
+        if (!_bottomLayer) {
+            _bottomLayer = [CALayer layer];
+        }
+        CGFloat borderWidth = editing ? 2 : 1;
+        _bottomLayer.borderColor = editing ? self.tintColor.CGColor : self.borderColor.CGColor;
+        _bottomLayer.frame = CGRectMake(0, self.frame.size.height - borderWidth, self.frame.size.width, borderWidth);
+        _bottomLayer.borderWidth = borderWidth;
+        [_bottomLayer removeFromSuperlayer];
+        [self.layer addSublayer:_bottomLayer];
+        
+    } else {
+        [_bottomLayer removeFromSuperlayer];
     }
-    CGFloat borderWidth = editing ? 2 : 1;
-    _bottomLayer.borderColor = editing ? self.tintColor.CGColor : (self.bottomLineColor ? self.bottomLineColor.CGColor : [UIColor colorWithWhite:0.898 alpha:1.000].CGColor);
-    _bottomLayer.frame = CGRectMake(0, self.frame.size.height - borderWidth, self.frame.size.width, self.frame.size.height);
-    _bottomLayer.borderWidth = borderWidth;
-    [self.layer addSublayer:_bottomLayer];
-    self.layer.masksToBounds = YES;
+    
+}
+
+- (void)setBorderDirection:(BorderDirection)borderDirection {
+    _borderDirection = borderDirection;
+    [self setEditingModeTo:self.editing];
+    if (!_leftLayer) {
+        _leftLayer = [self addBorderLayerWithFrame:CGRectMake(0, 0, 1, self.frame.size.height)];
+    }
+    
+    if (!_rightLayer) {
+        _rightLayer = [self addBorderLayerWithFrame:CGRectMake(self.frame.size.width - 1, 0, 1, self.frame.size.height)];
+    }
+    
+    if (!_topLayer) {
+        _topLayer = [self addBorderLayerWithFrame:CGRectMake(0, 0, self.frame.size.width, 1)];
+    }
+    
+    _topLayer.hidden = ! (borderDirection & BorderDirectionTop);
+    _leftLayer.hidden = ! (borderDirection & BorderDirectionLeft);
+    _rightLayer.hidden = ! (borderDirection & BorderDirectionRight);
+}
+
+- (void)setBorderColor:(UIColor *)borderColor {
+    _borderColor = borderColor;
+    _topLayer.borderColor = borderColor.CGColor;
+    _leftLayer.borderColor = borderColor.CGColor;
+    _rightLayer.borderColor = borderColor.CGColor;
+}
+
+- (CALayer *)addBorderLayerWithFrame:(CGRect)frame {
+    CALayer *layer = [CALayer layer];
+    layer.borderColor = self.borderColor.CGColor;
+    layer.frame = frame;
+    layer.borderWidth = 1;
+    
+    [self.layer addSublayer:layer];
+    
+    return layer;
 }
 
 - (BOOL)becomeFirstResponder {
